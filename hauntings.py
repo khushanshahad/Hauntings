@@ -1,42 +1,47 @@
-# Import necessary libraries for data visualization, map plotting, and analysis
+import json
+import urllib.request
 import folium
 import pandas as pd
 import auxiliaryFunctions
 from folium.plugins import HeatMap
 
-# Define the path to the CSV containing haunted locations data
-# Then read the data from the CSV file into a Pandas DataFrame
 file_path = 'hauntings.csv'
 dataframe = pd.read_csv(file_path)
 
-# Convert latitude and longitude columns to numeric, handling errors by coercing
 dataframe['latitude'] = pd.to_numeric(dataframe['latitude'], errors='coerce')
 dataframe['longitude'] = pd.to_numeric(dataframe['longitude'], errors='coerce')
 
-# Create a base map centered around the United States of America
-us_map = folium.Map(location=[37.0902, -95.7129], zoom_start=4)
+# Keep only Chicago hauntings (in Illinois, to avoid other cities named Chicago)
+chicago_df = dataframe[
+    (dataframe['state'].str.strip().str.lower() == 'illinois') &
+    (dataframe['city'].str.strip().str.lower() == 'chicago')
+].copy()
+chicago_df = chicago_df.dropna(subset=['latitude', 'longitude'])
 
-# Prepare data for a heatmap visualization
-heat_data = []
-for index, row in dataframe.iterrows():
-    if not pd.isnull(dataframe.at[index, 'latitude']):
-        latitude = dataframe.at[index, 'latitude']
-    else:
-        latitude = 0  # Replace missing latitude with an arbitrary value
+# Base map centered on Chicago
+chicago_map = folium.Map(location=[41.8781, -87.6298], zoom_start=11)
 
-    if not pd.isnull(dataframe.at[index, 'longitude']):
-        longitude = dataframe.at[index, 'longitude']
-    else:
-        longitude = 0  # Replace missing longitude with an arbitrary value
+# Download the Chicago city boundary
+boundary_url = "https://data.cityofchicago.org/api/geospatial/qqq8-j68g?method=export&format=GeoJSON"
+with urllib.request.urlopen(boundary_url) as response:
+    chicago_geojson = json.load(response)
 
-    heat_data.append([latitude, longitude, index])  # Append every row to the heatmap
+# Draw the outline (no fill so the heatmap stays visible)
+folium.GeoJson(
+    chicago_geojson,
+    name="Chicago Outline",
+    style_function=lambda feature: {
+        "fillColor": "orange",
+        "color": "black",
+        "weight": 1.5,
+    },
+).add_to(chicago_map)
 
-# Create a heatmap using the prepared data
-# Then save the map as an HTML file
-HeatMap(heat_data).add_to(us_map)
-us_map.save('HauntingsDistribution.html')
-      
-# Print haunting stats to a .txt file
-auxiliaryFunctions.stats(dataframe)
+# Heatmap
+heat_data = chicago_df[['latitude', 'longitude']].values.tolist()
+HeatMap(heat_data).add_to(chicago_map)
+
+chicago_map.save('ChicagoHauntingsDistribution.html')
+
+auxiliaryFunctions.stats(chicago_df)
 auxiliaryFunctions.success_message()
-
