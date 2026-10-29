@@ -27,6 +27,6 @@ def success_message():
     # This message gets printed if the program was successful
     print("-----------------------------------------------------------------------------------")
     print("The program succeeded.")
-    print("Please refer to the 'IllinoisHauntingsDistribution.html' and the 'IllinoisHauntingStats.txt' files.")
+    print("Please refer to the 'ChicagoHauntingsDistribution.html' and the 'ChicagoHauntingStats.txt' files.")
     print("Happy Haunting! 👻")
     print("-----------------------------------------------------------------------------------")
